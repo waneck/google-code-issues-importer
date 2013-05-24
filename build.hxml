@@ -1,0 +1,4 @@
+-cp src
+-php bin/php
+-main Main
+-lib mcli
