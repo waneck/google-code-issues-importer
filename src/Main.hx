@@ -50,6 +50,7 @@ class Main extends CommandLine
 			help();
 		}
 		log("Testing github connection");
+
 		var g:Api = new Api(token);
 		var t = g.test();
 		if (!t.response)
@@ -59,6 +60,14 @@ class Main extends CommandLine
 			Sys.exit(1);
 		}
 
+		//ok, get projects from google
+		var projs = [];
+		while(true)
+		{
+			var code = new gcode.Issues(googleCode);
+			// trace(code.next());
+			// trace(code.comments(10));
+		}
 	}
 
 	private function p(s:String)
