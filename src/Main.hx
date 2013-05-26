@@ -47,6 +47,12 @@ class Main extends CommandLine
 	public var force:Bool;
 
 	/**
+	 * starts importing from the specified issue number
+	 * @alias s
+	**/
+	public var startFrom:Int =0;
+
+	/**
 	 * shows this message
 	 */
 	public function help()
@@ -92,7 +98,7 @@ class Main extends CommandLine
 		}
 
 		//start synchronizing
-		var i = 0;
+		var i = startFrom - 1;
 		while(true)
 		{
 			i++;
