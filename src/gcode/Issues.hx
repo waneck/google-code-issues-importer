@@ -3,6 +3,7 @@ import haxe.Http;
 import haxe.xml.Fast;
 using StringTools;
 using Lambda;
+using gcode.Issues;
 
 class Issues
 {
@@ -62,17 +63,17 @@ class Issues
 		var x = new Fast(Xml.parse(data).firstElement());
 		return {
 			updated: x.node.updated.innerData,
-			title: x.node.title.innerData,
+			title: x.node.title.innerData.normalize(),
 			entries: x.nodes.entry.map(function(e) return {
 				published: e.node.published.innerData,
-				title: e.node.title.innerData,
-				content: e.node.content.innerHTML,
+				title: e.node.title.innerData.normalize(),
+				content: normalize(e.node.content.innerHTML),
 				author: e.node.author.node.name.innerData
 			}).array()
 		};
 	}
 
-	public function issue(id:Int): { published:String, title:String, author:String, state:String, content:String }
+	public function issue(id:Int): { published:String, title:String, author:String, state:String, content:String, labels:Array<String> }
 	{
 		//http://code.google.com/feeds/issues/p/haxe/issues/full/3
 		var http = new Http('http://code.google.com/feeds/issues/p/$project/issues/full/$id');
@@ -81,14 +82,25 @@ class Issues
 		var data= null;
 		http.onData = function(msg) data = msg;
 		http.request(false);
-		var x = new Fast(Xml.parse(data).firstElement());
-		return {
-			published: x.node.published.innerData,
-			title: x.node.title.innerData,
-			content: x.node.content.innerHTML,
-			author: x.node.author.node.name.innerData,
-			state: x.node.resolve('issues:state').innerData
-		};
+		try
+		{
+			var x = new Fast(Xml.parse(data).firstElement());
+			var labels = x.nodes.resolve("issues:label").map(function(x) return x.innerData).array();
+			return {
+				published: x.node.published.innerData,
+				title: x.node.title.innerData.normalize(),
+				content: normalize(x.node.content.innerHTML),
+				author: x.node.author.node.name.innerData,
+				state: x.node.resolve('issues:state').innerData,
+				labels: labels,
+			};
+		}
+		catch(e:Dynamic) { return null; }
+	}
+
+	private static function normalize(s:String)
+	{
+		return s.split("<![CDATA[").join("").split("]]>").join("").split("&lt;").join("<").split("&gt;").join(">").split("&amp;").join("&");
 	}
 
 	private static function parse(s:String, sepCode:Int):{ header:Array<String>, data:Array<Array<String>> }

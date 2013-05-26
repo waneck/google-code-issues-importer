@@ -144,14 +144,13 @@ class Issues
 
 		api.request(http,true);
 
-		Sys.sleep(.1);
 		if (closed) edit(repo,ret.number,title,body,assignee,milestone,labels,closed);
 		return ret;
 	}
 
 	public function edit(repo:String, id:Int, title:String, ?body:String, ?assignee:String, ?milestone:Int, ?labels:Array<String>, ?closed)
 	{
-		var http = new Http('https://api.github.com/repos/$repo/issues');
+		var http = new Http('https://api.github.com/repos/$repo/issues/$id');
 		http.onError = api.onError;
 		var obj:Dynamic = {};
 		obj.title = title;
