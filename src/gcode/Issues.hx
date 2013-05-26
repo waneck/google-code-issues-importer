@@ -63,10 +63,10 @@ class Issues
 		var x = new Fast(Xml.parse(data).firstElement());
 		return {
 			updated: x.node.updated.innerData,
-			title: x.node.title.innerData.normalize(),
+			title: x.node.title.innerHTML.normalize(),
 			entries: x.nodes.entry.map(function(e) return {
 				published: e.node.published.innerData,
-				title: e.node.title.innerData.normalize(),
+				title: e.node.title.innerHTML.normalize(),
 				content: normalize(e.node.content.innerHTML),
 				author: e.node.author.node.name.innerData
 			}).array()
@@ -88,7 +88,7 @@ class Issues
 			var labels = x.nodes.resolve("issues:label").map(function(x) return x.innerData).array();
 			return {
 				published: x.node.published.innerData,
-				title: x.node.title.innerData.normalize(),
+				title: x.node.title.innerHTML.normalize(),
 				content: normalize(x.node.content.innerHTML),
 				author: x.node.author.node.name.innerData,
 				state: x.node.resolve('issues:state').innerData,
