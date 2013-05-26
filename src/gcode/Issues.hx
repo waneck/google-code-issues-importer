@@ -18,7 +18,7 @@ class Issues
 		this.all = true;
 	}
 
-	public function next():{ header:Array<String>, data:Array<Array<String>> }
+	public function next():{ header:Array<String>, data:Array<Array<String>>, isLast:Bool }
 	{
 		var http = new Http('http://code.google.com/p/$project/issues/csv');
 		http.setHeader("User-Agent", "curl/7.27.0");
@@ -35,22 +35,26 @@ class Issues
 		http.request(false);
 
 		var ret = parse(data, ','.code);
+		var isLast = true;
 		if (ret.data != null)
 		{
 			var lst = ret.data.pop();
-			trace(lst);
 			while (ret.data.length > 0 && (lst[0] == null || lst[0].startsWith("This file is truncated")))
 			{
+				if (lst[0].startsWith("This file is truncated"))
+					isLast = false;
+
 				lst = ret.data.pop();
 			}
 			resultNumber += ret.data.length;
 		}
-		return ret;
+		return { header: ret.header, data: ret.data, isLast: isLast };
 	}
 
 	public function comments(id:Int):{ updated:String, title:String, entries:Array<{ published:String, title:String, content:String, author:String }> }
 	{
 		var http = new Http('http://code.google.com/feeds/issues/p/$project/issues/$id/comments/full');
+		http.setHeader("User-Agent", "curl/7.27.0");
 		http.onError = function(msg) throw msg;
 		var data= null;
 		http.onData = function(msg) data = msg;
@@ -65,6 +69,25 @@ class Issues
 				content: e.node.content.innerHTML,
 				author: e.node.author.node.name.innerData
 			}).array()
+		};
+	}
+
+	public function issue(id:Int): { published:String, title:String, author:String, state:String, content:String }
+	{
+		//http://code.google.com/feeds/issues/p/haxe/issues/full/3
+		var http = new Http('http://code.google.com/feeds/issues/p/$project/issues/full/$id');
+		http.setHeader("User-Agent", "curl/7.27.0");
+		http.onError = function(msg) throw msg;
+		var data= null;
+		http.onData = function(msg) data = msg;
+		http.request(false);
+		var x = new Fast(Xml.parse(data).firstElement());
+		return {
+			published: x.node.published.innerData,
+			title: x.node.title.innerData,
+			content: x.node.content.innerHTML,
+			author: x.node.author.node.name.innerData,
+			state: x.node.resolve('issues:state').innerData
 		};
 	}
 
