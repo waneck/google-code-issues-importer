@@ -132,7 +132,10 @@ class Issues
 		http.onError = api.onError;
 		var obj:Dynamic = {};
 		obj.title = title;
-		if (body != null) obj.body = body;
+		if (body != null)
+		{
+			obj.body = haxe.Utf8.encode(body);
+		}
 		if (assignee != null) obj.assignee = assignee;
 		if (milestone != null) obj.milestone = milestone;
 		if (labels != null) obj.labels = labels;
@@ -154,7 +157,10 @@ class Issues
 		http.onError = api.onError;
 		var obj:Dynamic = {};
 		obj.title = title;
-		if (body != null) obj.body = body;
+		if (body != null)
+		{
+			obj.body = haxe.Utf8.encode(body);
+		}
 		if (assignee != null) obj.assignee = assignee;
 		if (milestone != null) obj.milestone = milestone;
 		if (labels != null) obj.labels = labels;
