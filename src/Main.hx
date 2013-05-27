@@ -82,8 +82,13 @@ class Main extends CommandLine
 
 		var n = null;
 		var code = new gcode.Issues(googleCode);
-		var milestones = new Map();
+		var milestones = new Map<String,Int>();
 		var githubMilestones = api.issues.milestones(github);
+		for (m in githubMilestones)
+		{
+			milestones.set(m.title, m.number);
+		}
+
 		function getMilestone(milestone)
 		{
 			if (milestone == null || milestone == "") return null;
