@@ -190,7 +190,6 @@ class Issues
 		var obj:Dynamic = { title:name };
 		http.setPostData(Json.stringify(obj));
 		api.request(http,true);
-		trace(ret);
 		return ret.number;
 	}
 
