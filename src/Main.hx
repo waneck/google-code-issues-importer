@@ -54,6 +54,11 @@ class Main extends CommandLine
 	public var startFrom:Int = 1;
 
 	/**
+	 * stops at defined number
+	**/
+	public var until:Null<Int>;
+
+	/**
 	 * specifies a file that will perform a revision map between git and svn. see example-revision-map.txt
 	 * @alias r
 	**/
@@ -137,6 +142,7 @@ class Main extends CommandLine
 		while(true)
 		{
 			i++;
+			if (until != null && i >= until) break;
 			log('Processing issue $i');
 			// var issue = issues[i];
 			var entry = code.issue(i);
