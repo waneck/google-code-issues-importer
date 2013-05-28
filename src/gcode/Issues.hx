@@ -65,12 +65,18 @@ class Issues
 			updated: x.node.updated.innerData,
 			title: x.node.title.innerHTML.normalize(),
 			entries: x.nodes.entry.map(function(e) return {
-				published: e.node.published.innerData,
+				published: convertDate(e.node.published.innerData),
 				title: e.node.title.innerHTML.normalize(),
 				content: normalize(e.node.content.innerHTML),
 				author: e.node.author.node.name.innerData
 			}).array()
 		};
+	}
+
+	private static function convertDate(d:String)
+	{
+		var d = Date.fromString(d.substr(0,19).split("T").join(" "));
+		return DateTools.format(d, '%d/%m/%Y, %T');
 	}
 
 	public function issue(id:Int): { published:String, title:String, author:String, state:String, content:String, labels:Array<String> }
@@ -87,7 +93,7 @@ class Issues
 			var x = new Fast(Xml.parse(data).firstElement());
 			var labels = x.nodes.resolve("issues:label").map(function(x) return x.innerData).array();
 			return {
-				published: x.node.published.innerData,
+				published: convertDate(x.node.published.innerData),
 				title: x.node.title.innerHTML.normalize(),
 				content: normalize(x.node.content.innerHTML),
 				author: x.node.author.node.name.innerData,

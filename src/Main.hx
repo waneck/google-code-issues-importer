@@ -3,6 +3,7 @@ package ;
 import github.Api;
 import mcli.CommandLine;
 import mcli.Dispatch;
+import sys.io.File;
 using Lambda;
 using StringTools;
 
@@ -50,7 +51,36 @@ class Main extends CommandLine
 	 * starts importing from the specified issue number
 	 * @alias s
 	**/
-	public var startFrom:Int =0;
+	public var startFrom:Int = 1;
+
+	/**
+	 * specifies a file that will perform a revision map between git and svn. see example-revision-map.txt
+	 * @alias r
+	**/
+	public function revMap(file:String)
+	{
+		if (revs == null)
+			revs = new Map();
+		var f = File.read(file);
+		try
+		{
+			while(true)
+			{
+				var r = f.readLine().split(" ");
+				if (r.length != 2) throw "Invalid file";
+				revs.set(r[0], r[1]);
+			}
+		}
+		catch(e:haxe.io.Eof){}
+		f.close();
+	}
+
+	/**
+	 * haxe mode - detects what looks like haxe code and adds <pre> </pre> guards
+	**/
+	public var haxeMode:Bool;
+
+	private var revs:Map<String,String>;
 
 	/**
 	 * shows this message
@@ -134,14 +164,14 @@ class Main extends CommandLine
 				if (!dryRun)
 				{
 					var closed = entry.state == "closed";
-					var content = '<i>[Google Issue #$i : http://code.google.com/$googleCode/issues/detail?id=$i]</i>\n by <i>${entry.author}, at ${entry.published}</i>\n' + entry.content.split('{{{').join('<pre>').split('}}}').join("</pre>");
+					var content = '<i>[Google Issue #$i : https://code.google.com/p/$googleCode/issues/detail?id=$i]</i>\n <i>by ${entry.author}, at ${entry.published}</i>\n' + getText(entry.content.split('{{{').join('<pre>').split('}}}').join("</pre>"));
 					var milestone = null;
 					var labels = entry.labels.filter(function(s) return if(s.startsWith('Milestone-')) { milestone = s.substr(10); false; } else true);
 					var issue = api.issues.create(github, googlei.title, content, null, getMilestone(milestone), getLabels(labels), closed);
 					//add comments
 					for (c in googlei.entries)
 					{
-						api.issues.createComment(github, issue.number, '<i>[comment from ${c.author}, published at ${c.published}]</i>\n' + c.content);
+						api.issues.createComment(github, issue.number, '<i>[comment from ${c.author}, published at ${c.published}]</i>\n' + getText(c.content));
 					}
 				}
 			} else {
@@ -165,6 +195,101 @@ class Main extends CommandLine
 			response = Sys.stdin().readLine().toLowerCase();
 		}
 		return response == "y";
+	}
+
+	static var revRegex = ~/r(\d+)/gmi;
+
+	private function getText(s:String)
+	{
+		var ret = revRegex.map(s, function(e) {
+			var rev = revs.get(e.matched(1));
+			if (rev == null) throw 'Revision not found: ${e.matched(0)}';
+			return rev;
+		});
+
+		//haxe mode
+		if(haxeMode)
+		{
+			//take off <b> </b> tags, which cause problems with code
+
+			var len = ret.length, i = 0;
+			var buf = new StringBuf(), cl = new StringBuf();
+			while(i < len)
+			{
+				switch(StringTools.fastCodeAt(ret,i++))
+				{
+					case '@'.code: //escape outside of code '@' to avoid marking people
+						cl.addChar('@'.code);
+						cl.addChar(' '.code);
+					case '{'.code: //find matching
+						var indent = 0, save = i, linecount = 0;
+						var cur = new StringBuf(), success= false;
+						function newline()
+						{
+							linecount++;
+							var ind = indent;
+							while(i < len)
+							{
+								switch(StringTools.fastCodeAt(ret,i))
+								{
+									case ' '.code, '\t'.code, '\n'.code: i++;
+									case '}'.code: ind--; break;
+									default: break;
+								}
+							}
+							cur.addChar('\n'.code);
+							for(i in 0...ind) cur.addChar('\t'.code);
+						}
+						cur.add("<pre>");
+						cur.add(cl.toString());
+						cur.add("{");
+						indent++;
+
+						while(i < len)
+						{
+							switch(StringTools.fastCodeAt(ret,i++))
+							{
+								case '{'.code:
+									indent++;
+									cur.addChar('{'.code);
+								case '}'.code:
+									--indent;
+									cur.addChar('}'.code);
+									if (indent == 0)
+									{
+										cur.add("\n</pre>\n");
+										success= true;
+										break;
+									}
+								case '\n'.code:
+									newline();
+								case chr:
+									cur.addChar(chr);
+							}
+						}
+
+						if (success && linecount > 0)
+						{
+							var c = cur.toString();
+							c = c.replace("<b>", "").replace("</b>", "");
+							cl = new StringBuf();
+							cl.add(c);
+						} else {
+							cl.addChar('{'.code);
+							i = save;
+						}
+					case '\n'.code:
+						buf.add(cl.toString());
+						buf.addChar('\n'.code);
+						cl = new StringBuf();
+					case c:
+						cl.addChar(c);
+				}
+			}
+			buf.add(cl.toString());
+			ret = buf.toString();
+		}
+		return ret;
 	}
 
 	private function getLabels(labels:Array<String>)
